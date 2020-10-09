@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My first Vue app</title>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="vue.min.js"></script>
+  <script src="jquery-3.5.1.slim.min.js"></script>
+</head>
+<body>
+  <div id="app">
+      <image id="camera" src="" />
+  </div>
+
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        timer: null,
+      },
+      created: function() {
+        self = this;
+        this.timer = setInterval(function() {self.onLoad()}, 50)
+      },
+      methods: {
+        onLoad: function() {
+            axios.get('http://pi4.local:8000/Streaming').then(function(response){
+                $("#camera").attr('src', response.data.image);
+            }).catch(function(error){
+            });
+        }
+      }
+    })
+  </script>
+</body>
+</html>
