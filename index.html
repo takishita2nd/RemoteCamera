@@ -8,7 +8,9 @@
 </head>
 <body>
   <div id="app">
-      <image id="camera" src="" />
+      <image id="camera" src="" /><br />
+      <button @click="onShutter">Shutter</button><br />
+      <a id="picture" href="" target="_blank">{{ path }}</a>
   </div>
 
   <script>
@@ -16,6 +18,11 @@
       el: '#app',
       data: {
         timer: null,
+        param: {},
+        contents: {
+          command: 1,
+        },
+        path: "",
       },
       created: function() {
         self = this;
@@ -25,6 +32,15 @@
         onLoad: function() {
             axios.get('http://pi4.local:8000/Streaming').then(function(response){
                 $("#camera").attr('src', response.data.image);
+            }).catch(function(error){
+            });
+        },
+        onShutter: function() {
+          self = this;
+          this.param.contents = this.contents;
+          axios.post('http://pi4.local:8000/', this.param).then(function(response){
+                $("#picture").attr('href', response.data.path);
+                self.path = response.data.path;
             }).catch(function(error){
             });
         }

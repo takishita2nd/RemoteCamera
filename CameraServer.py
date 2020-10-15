@@ -1,5 +1,6 @@
 import base64
 import cv2
+import datetime
 import json
 import os
 import pathlib
@@ -27,6 +28,7 @@ def __main__():
         while cap.isOpened():
             time.sleep(1)
     except KeyboardInterrupt:
+        cap.release()
         return
 
 def httpServe():
@@ -78,5 +80,31 @@ class StubHttpRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", CONTENT_TYPE[pathlib.Path(filepath).suffix])
             self.end_headers()
             self.wfile.write(bytes(data))
+
+    def do_POST(self):
+        content_len = int(self.headers.get('content-length'))
+        requestBody = json.loads(self.rfile.read(content_len).decode('utf-8'))
+
+        if requestBody['contents']['command'] == 1:
+            _, img = cap.read()
+            dt_now = datetime.datetime.now()
+            filename = dt_now.strftime('%Y%m%d_%H%M%S')+".jpg"
+            cv2.imwrite(filename, img)
+
+            response = {
+                'status' : 200,
+                'path': "http://pi4.local:8000/" + filename
+            }
+        else:
+            response = {
+                'status' : 200
+            }
+
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        responseBody = json.dumps(response)
+
+        self.wfile.write(responseBody.encode('utf-8'))
 
 __main__()
