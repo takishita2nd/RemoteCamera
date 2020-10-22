@@ -16,9 +16,12 @@ from urllib.parse import urlparse
 PORT = 8000
 CONTENT_TYPE = {'.html': 'text/html; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json',
         '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif',
-        '.css':'text/css'}
+        '.css':'text/css', '.avi': 'video/x-msvideo'}
 
 cap = cv2.VideoCapture(0)
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+capture = False
+out = None
 
 def __main__():
     thread = threading.Thread(target=httpServe)
@@ -36,8 +39,15 @@ def httpServe():
     httpd = HTTPServer(('',PORT),handler)
     httpd.serve_forever()
 
+def videoCapture():
+    while capture:
+        _, img = cap.read()
+        out.write(img)
+
 class StubHttpRequestHandler(BaseHTTPRequestHandler):
     server_version = "HTTP Stub/0.1"
+    thread = None
+    aviFilename = ""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,6 +92,11 @@ class StubHttpRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(data))
 
     def do_POST(self):
+        global thread
+        global aviFilename
+        global capture
+        global out
+
         content_len = int(self.headers.get('content-length'))
         requestBody = json.loads(self.rfile.read(content_len).decode('utf-8'))
 
@@ -94,6 +109,30 @@ class StubHttpRequestHandler(BaseHTTPRequestHandler):
             response = {
                 'status' : 200,
                 'path': "http://pi4.local:8000/" + filename
+            }
+        if requestBody['contents']['command'] == 2:
+            dt_now = datetime.datetime.now()
+            aviFilename = dt_now.strftime('%Y%m%d_%H%M%S')+".avi"
+            out = cv2.VideoWriter(aviFilename, fourcc, 20.0, (640,480))
+            
+            capture = True
+            thread = threading.Thread(target=videoCapture)
+            thread.start()
+
+            response = {
+                'status' : 200,
+            }
+        if requestBody['contents']['command'] == 3:
+            capture = False
+
+            thread.join()
+
+            out.release()
+            out = None
+
+            response = {
+                'status' : 200,
+                'path': "http://pi4.local:8000/" + aviFilename
             }
         else:
             response = {

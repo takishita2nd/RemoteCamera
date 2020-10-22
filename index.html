@@ -5,11 +5,17 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="vue.min.js"></script>
   <script src="jquery-3.5.1.slim.min.js"></script>
+  <style type="text/css">
+  #rec {
+    color: red;
+  }
+  </style>
 </head>
 <body>
   <div id="app">
       <image id="camera" src="" /><br />
       <button @click="onShutter">Shutter</button><br />
+      <button id="rec" @click="onRecord">●</button><br />
       <a id="picture" href="" target="_blank">{{ path }}</a>
   </div>
 
@@ -23,6 +29,7 @@
           command: 1,
         },
         path: "",
+        recording: false,
       },
       created: function() {
         self = this;
@@ -37,12 +44,35 @@
         },
         onShutter: function() {
           self = this;
+          this.contents.command = 1;
           this.param.contents = this.contents;
           axios.post('http://pi4.local:8000/', this.param).then(function(response){
                 $("#picture").attr('href', response.data.path);
                 self.path = response.data.path;
             }).catch(function(error){
             });
+        },
+        onRecord: function() {
+          self = this;
+          if(this.recording == false){
+            this.contents.command = 2;
+            this.param.contents = this.contents;
+            axios.post('http://pi4.local:8000/', this.param).then(function(response){
+              $("#rec").text("■")
+              self.recording = true;
+            }).catch(function(error){
+            });
+          }else{
+            this.contents.command = 3;
+            this.param.contents = this.contents;
+            axios.post('http://pi4.local:8000/', this.param).then(function(response){
+              self.recording = false;
+              $("#rec").text("●")
+              $("#picture").attr('href', response.data.path);
+              self.path = response.data.path;
+            }).catch(function(error){
+            });
+          }
         }
       }
     })
