@@ -22,6 +22,7 @@ cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 capture = False
 out = None
+lasttime = None
 
 def __main__():
     thread = threading.Thread(target=httpServe)
@@ -40,7 +41,16 @@ def httpServe():
     httpd.serve_forever()
 
 def videoCapture():
+    global capture
+    global out
+
     while capture:
+        nowtime = time.time()
+        if nowtime - lasttime > 10:
+            capture = False
+            out.release()
+            out = None
+            break
         _, img = cap.read()
         out.write(img)
 
@@ -55,6 +65,9 @@ class StubHttpRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == '/Streaming':
+            global lasttime
+            lasttime = time.time()
+
             enc = sys.getfilesystemencoding()
 
             _, img = cap.read()
